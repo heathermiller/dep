@@ -21,20 +21,19 @@ object Proof {
     macro Materializer.impl[X]
 
   /** Implicit materializer macro bundle for proofs. */
-  class Materializer(val c: Context) extends ExprEvaluator {
+  class Materializer(val c: Context) {
 
     import c.universe._
 
     /** Implicit materializer implementation. */
-    def impl[X <: Pt[Boolean]: c.WeakTypeTag](
-      ip: c.Expr[Interpreter[Boolean, X]]): c.Expr[Proof[X]] = {
+    def impl[X <: Pt[Boolean]: c.WeakTypeTag](ip: c.Tree) = {
 
       // Get the type of the type-level proposition and construct the
       // corresponding proof type.
       val tp = implicitly[c.WeakTypeTag[X]].tpe
 
       // Evaluate the proposition using the implicit interpreter.
-      val prop = eval(c.Expr[Boolean](q"${ip.tree}.value"))
+      val prop = TreeEvaluator.evalInterpreter[Boolean](c)(ip)
       println(s"Compile time value of proposition $tp: $prop")
 
       // Materialize the implicit evidence value if and only if the

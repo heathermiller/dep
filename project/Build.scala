@@ -6,7 +6,8 @@ object BuildSettings {
   val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "ch.epfl.lamp",
     version := "0.1-SNAPSHOT",
-    scalacOptions ++= Seq("-Xlog-implicits", "-deprecation"),
+    //scalacOptions += "-Xlog-implicits",
+    scalacOptions += "-deprecation",
     autoAPIMappings := true,
     scalaVersion := "2.11.0",
     crossScalaVersions := Seq("2.10.2", "2.10.3", "2.10.4", "2.11.0"),
@@ -14,6 +15,15 @@ object BuildSettings {
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.1.5" % "test",
     addCompilerPlugin("org.scalamacros" % "paradise" % paradiseVersion cross CrossVersion.full)
+  )
+
+  val macroBuildSettings = buildSettings ++ Seq(
+    scalacOptions += "-language:experimental.macros",
+    libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _),
+    libraryDependencies ++= (
+      if (scalaVersion.value.startsWith("2.10")) List("org.scalamacros" %% "quasiquotes" % paradiseVersion)
+      else Nil
+    )
   )
 }
 
@@ -33,20 +43,13 @@ object MyBuild extends Build {
   lazy val common = Project(
     "common",
     file("common"),
-    settings = buildSettings
+    settings = macroBuildSettings
   )
 
   lazy val macros: Project = Project(
     "macros",
     file("macros"),
-    settings = buildSettings ++ Seq(
-      scalacOptions += "-language:experimental.macros",
-      libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _),
-      libraryDependencies ++= (
-        if (scalaVersion.value.startsWith("2.10")) List("org.scalamacros" %% "quasiquotes" % paradiseVersion)
-        else Nil
-      )
-    )
+    settings = macroBuildSettings
   ) dependsOn(common)
 
   lazy val core = Project(
