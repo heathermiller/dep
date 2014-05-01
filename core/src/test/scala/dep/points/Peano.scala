@@ -46,23 +46,23 @@ class PeanoSpec extends Peano with FlatSpecLike with Matchers {
   it should "prove some arithmetic assertions" in {
 
     // Basics
-    prove[Zero        === Zero] should equal(())
-    prove[One         === One] should equal(())
+    prove[Zero === Zero]
+    prove[One  === One]
 
     // Sums
-    prove[Zero + One  === One] should equal(())
+    prove[Zero + One === One]
 
     // Differences
-    prove[One - Zero  === One] should equal(())
-    prove[Three - Two === One] should equal(())
+    prove[One - Zero  === One]
+    prove[Three - Two === One]
 
     // Products
-    prove[*[One, Zero]  === Zero]  should equal(())
-    prove[*[One, Three] === Three] should equal(())
+    prove[*[One, Zero]  === Zero]
+    prove[*[One, Three] === Three]
 
     // Quotients
-    prove[Zero / Two === Zero] should equal(())
-    prove[Two / One  === Two]  should equal(())
-    prove[Two / Two  === One]  should equal(())
+    prove[Zero / Two === Zero]
+    prove[Two / One  === Two]
+    prove[Two / Two  === One]
   }
 }

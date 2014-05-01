@@ -67,4 +67,3 @@ object Interpreter {
     Interpreter.fromTree[A, X](c)(Literal(Constant(value)))
   }
 }
-

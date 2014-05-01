@@ -7,6 +7,7 @@ object BuildSettings {
     organization := "ch.epfl.lamp",
     version := "0.1-SNAPSHOT",
     //scalacOptions += "-Xlog-implicits",
+    //scalacOptions += "-Xprint:cleanup",
     scalacOptions += "-deprecation",
     autoAPIMappings := true,
     scalaVersion := "2.11.0",

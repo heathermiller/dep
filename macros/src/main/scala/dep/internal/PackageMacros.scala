@@ -1,12 +1,13 @@
-package ch.epfl.lamp
+package ch.epfl.lamp.dep
+package internal
 
-import scala.language.experimental.macros
-
-import dep.internal.{ PackageMacros, Proof }
+import scala.reflect.macros.whitebox.Context
 
 
-/** Package object containing top-level definitions. */
-package object dep {
+/** Implementations of top-level package macros. */
+class PackageMacros(val c: Context) {
+
+  import c.universe._
 
   /**
    * Interpret a type-level expression.
@@ -14,8 +15,7 @@ package object dep {
    * Given a type-level representation `X <: Pt[A]` of a term-level
    * expression `x: A`, `interpret[A, X]` returns `x`.
    */
-  def interpret[A, X <: Pt[A]](implicit ip: Interpreter[A, X]): A =
-    macro PackageMacros.interpretImpl[A]
+  def interpretImpl[A: c.WeakTypeTag](ip: c.Tree) = q"$ip.value"
 
   /**
    * Prove a type-level proposition.
@@ -24,6 +24,5 @@ package object dep {
    * term-level proposition `x: Boolean`, `prove[X]` returns `()` if
    * `x == true` or produces a compile-time error otherwise.
    */
-  def prove[X <: Pt[Boolean]](implicit pf: Proof[X]): Unit =
-    macro PackageMacros.proveImpl[X]
+  def proveImpl[X <: Pt[Boolean]: c.WeakTypeTag](pf: c.Tree) = q"()"
 }

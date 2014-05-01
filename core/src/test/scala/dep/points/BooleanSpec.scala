@@ -39,21 +39,21 @@ class BooleanSpec extends FlatSpecLike with Matchers {
   it should "prove some logical assertions" in {
 
     // Basics
-    prove[True] should equal(())
+    prove[True]
 
     // Negations
-    prove[![False]] should equal(())
+    prove[![False]]
 
     // Conjunctions
-    prove[True  && True ] should equal(())
+    prove[True  && True ]
 
     // Disjunctions
-    prove[True  || True ] should equal(())
-    prove[True  || False] should equal(())
-    prove[False || True ] should equal(())
+    prove[True  || True ]
+    prove[True  || False]
+    prove[False || True ]
 
     // Equalities
-    prove[True  === True ] should equal(())
-    prove[False === False] should equal(())
+    prove[True  === True ]
+    prove[False === False]
   }
 }

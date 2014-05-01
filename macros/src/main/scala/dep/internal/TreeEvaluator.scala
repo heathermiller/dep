@@ -3,10 +3,13 @@ package internal
 
 import scala.reflect.macros.whitebox.Context
 
+
 /**
+ * Methods for evaluating trees to runtime values.
  */
 object TreeEvaluator {
 
+  /** Evaluate `tree` to the runtime value it represents. */
   def eval[A](c: Context)(tree: c.Tree): A = {
 
     import c.universe._
@@ -36,6 +39,9 @@ object TreeEvaluator {
     }
   }
 
+  /**
+   * Evaluate the interpreter `ip` to the runtime value it represents.
+   */
   def evalInterpreter[A](c: Context)(ip: c.Tree): A = {
     import c.universe._
     eval[A](c)(q"$ip.value")
