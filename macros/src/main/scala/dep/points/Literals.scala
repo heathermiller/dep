@@ -26,14 +26,9 @@ final class lit(x: Any) extends StaticAnnotation
 sealed trait Cst[+A] extends Pt[A]
 object Cst {
 
-  /** Implicit materializer for type-level integer literals. */
-  implicit def evalInt[X <: Cst[Int]]: Interpreter[Int, X] =
-    macro Literals.evalImpl[Int, X]
-
-  /** Implicit materializer for type-level Boolean literals. */
-  implicit
-  def evalBoolean[X <: Cst[Boolean]]: Interpreter[Boolean, X] =
-    macro Literals.evalImpl[Boolean, X]
+  /** Implicit materializer for type-level literals. */
+  implicit def evalInt[A, X <: Cst[A]]: Interpreter[A, X] =
+    macro Literals.evalImpl[A, X]
 }
 
 
@@ -43,22 +38,22 @@ class Literals(val c: Context) {
   /** Materializer macro implementation for type-level literals. */
   def evalImpl[A: c.WeakTypeTag, X <: Pt[A]: c.WeakTypeTag] = {
     import c.universe._
-    val atp = implicitly[WeakTypeTag[A]].tpe.dealias
     val xtp = implicitly[WeakTypeTag[X]].tpe.dealias
-    val tps = atp :: xtp :: (xtp.typeArgs map (_.dealias))
-    val annotss = tps collect {
-      case AnnotatedType(as, _) => as map (_.tree)
+    val ctp = xtp.typeConstructor
+    if (ctp != typeOf[Cst[_]].typeConstructor)
+      c.abort(c.enclosingPosition, s"not a literal container: $ctp")
+    val (atp, annots) = xtp.typeArgs match {
+      case AnnotatedType(annots, atp) :: Nil => (atp, annots)
+      case _ =>
+        c.abort(c.enclosingPosition, s"not @lit-annotated: $xtp")
     }
-    val x = annotss.flatten collectFirst {
+    val ox = annots map (_.tree) collectFirst {
       case q"new $t($x)" if t.tpe == typeOf[lit] => x
     }
-    x match {
-      case Some(x) => Interpreter.fromTree[A, X](c)(x)
-      case None => {
-        val tpsStr = tps.mkString("'", "', '", "'")
-        c.abort(c.enclosingPosition,
-          s"neither of the types $tpsStr have @lit annotations.")
-      }
+    ox match {
+      case Some(x) => Interpreter.fromTreeAndTypes(c)(x, atp, xtp)
+      case None =>
+        c.abort(c.enclosingPosition, s"not a type-level literal: $xtp")
     }
   }
 }

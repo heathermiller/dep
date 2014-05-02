@@ -43,13 +43,20 @@ object Interpreter {
     c.Expr[A](ret)
   }
 
+  def fromTreeAndTypes(
+    c: Context)(value: c.Tree, atp: c.Type, xtp: c.Type): c.Tree = {
+    import c.universe._
+    val comp = typeOf[Interpreter[_, _]].typeSymbol.companion
+    q"$comp.apply[$atp, $xtp]($value)"
+  }
+
   def fromTree[A: c.WeakTypeTag, X <: Pt[A]: c.WeakTypeTag](
     c: Context)(value: c.Tree): c.Tree = {
     import c.universe._
     val atp = implicitly[WeakTypeTag[A]].tpe
     val xtp = implicitly[WeakTypeTag[X]].tpe
     val comp = typeOf[Interpreter[_, _]].typeSymbol.companion
-    q"$comp.apply[$atp, $xtp]($value)"
+    Interpreter.fromTreeAndTypes(c)(value, atp, xtp)
   }
 
   def fromExpr[A: c.WeakTypeTag, X <: Pt[A]: c.WeakTypeTag](

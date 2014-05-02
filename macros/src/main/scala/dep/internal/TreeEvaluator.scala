@@ -9,6 +9,14 @@ import scala.reflect.macros.whitebox.Context
  */
 object TreeEvaluator {
 
+  def dealiasType(c: Context)(t: c.Type): c.Type = {
+    import c.universe._
+    val t2 = t.dealias
+    appliedType(t2.typeConstructor, t2.typeArgs map {
+      t => dealiasType(c)(t)
+    })
+  }
+
   /** Evaluate `tree` to the runtime value it represents. */
   def eval[A](c: Context)(tree: c.Tree): A = {
 
@@ -16,12 +24,8 @@ object TreeEvaluator {
 
     // A tree transformer for de-aliasing types.
     object TypeDealiaser extends Transformer {
-      def dealias(t: Type): Type = {
-        val t2 = t.dealias
-        appliedType(t2.typeConstructor, t2.typeArgs map { t => dealias(t)})
-      }
       override def transform(tree: Tree): Tree = tree match {
-        case t: TypeTree => TypeTree(dealias(t.tpe))
+        case t: TypeTree => TypeTree(dealiasType(c)(t.tpe))
         case _ => super.transform(tree)
       }
     }
