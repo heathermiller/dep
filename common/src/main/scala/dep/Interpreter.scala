@@ -34,35 +34,32 @@ object Interpreter {
 
     import c.universe._
 
-    val owner = typeOf[Interpreter.type].typeSymbol
+    val owner = typeOf[Interpreter.type]
     val p = c.prefix.tree
-    val default = q"$p.internalValue"
     val ret = p match {
-      case Apply(fun, args) =>
-        if (fun.symbol.owner.asType == owner) args.head
-        else default
-      case _ => default
+      case q"$t.apply[${_}, ${_}]($arg)" if (t.tpe == owner) => arg
+      case _ => q"$p.internalValue"
     }
     c.Expr[A](ret)
   }
 
   def fromTree[A: c.WeakTypeTag, X <: Pt[A]: c.WeakTypeTag](
-    c: Context)(value: c.Tree): c.Expr[Interpreter[A, X]] = {
+    c: Context)(value: c.Tree): c.Tree = {
     import c.universe._
     val atp = implicitly[WeakTypeTag[A]].tpe
     val xtp = implicitly[WeakTypeTag[X]].tpe
     val comp = typeOf[Interpreter[_, _]].typeSymbol.companion
-    c.Expr(q"$comp.apply[$atp, $xtp]($value)")
+    q"$comp.apply[$atp, $xtp]($value)"
   }
 
   def fromExpr[A: c.WeakTypeTag, X <: Pt[A]: c.WeakTypeTag](
-    c: Context)(value: c.Expr[A]): c.Expr[Interpreter[A, X]] = {
+    c: Context)(value: c.Expr[A]): c.Tree = {
     import c.universe._
     Interpreter.fromTree[A, X](c)(q"${value.tree}")
   }
 
   def fromLiteral[A: c.WeakTypeTag, X <: Pt[A]: c.WeakTypeTag](
-    c: Context)(value: A): c.Expr[Interpreter[A, X]] = {
+    c: Context)(value: A): c.Tree = {
     import c.universe._
     Interpreter.fromTree[A, X](c)(Literal(Constant(value)))
   }
