@@ -1,5 +1,4 @@
 package ch.epfl.lamp.dep
-package points
 
 import scala.reflect.macros.whitebox.Context
 

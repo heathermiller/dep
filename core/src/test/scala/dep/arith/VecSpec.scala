@@ -1,11 +1,11 @@
 package ch.epfl.lamp.dep
+package arith
 
 import scala.reflect.ClassTag
 
 import org.scalatest.FlatSpecLike
 import org.scalatest.Matchers
 
-import points._
 
 
 class Vectors {

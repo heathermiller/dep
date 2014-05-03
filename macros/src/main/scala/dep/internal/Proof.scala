@@ -40,7 +40,7 @@ object Proof {
       // proposition is true.
       if (prop) {
         // Construct and return the proof type.
-        val ctr = typeOf[Proof[points.True]].typeConstructor
+        val ctr = typeOf[Proof[_]].typeConstructor
         val ptp = appliedType(ctr, List(tp))
         c.Expr[Proof[X]](q"new $ptp { }")
       } else c.abort(c.enclosingPosition, s"${tp} evaluated to false.")

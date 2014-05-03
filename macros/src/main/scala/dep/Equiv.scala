@@ -3,7 +3,6 @@ package ch.epfl.lamp.dep
 import scala.reflect.macros.whitebox.Context
 
 import internal.Proof
-import points.===
 
 
 /**

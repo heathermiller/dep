@@ -3,7 +3,6 @@ package ch.epfl.lamp.dep
 import org.scalatest.FlatSpecLike
 import org.scalatest.Matchers
 
-import points._
 
 class BooleanSpec extends FlatSpecLike with Matchers {
 

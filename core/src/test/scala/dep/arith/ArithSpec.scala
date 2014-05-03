@@ -1,9 +1,8 @@
 package ch.epfl.lamp.dep
+package arith
 
 import org.scalatest.FlatSpecLike
 import org.scalatest.Matchers
-
-import points._
 
 
 class IntSpec extends FlatSpecLike with Matchers {

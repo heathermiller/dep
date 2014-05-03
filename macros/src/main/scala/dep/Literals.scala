@@ -1,8 +1,8 @@
 package ch.epfl.lamp.dep
-package points
 
 import scala.annotation.StaticAnnotation
 import scala.reflect.macros.whitebox.Context
+
 
 /**
  * Annotation class for type-level literals.

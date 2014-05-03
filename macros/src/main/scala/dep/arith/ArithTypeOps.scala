@@ -1,5 +1,5 @@
 package ch.epfl.lamp.dep
-package points
+package arith
 
 import scala.reflect.macros.whitebox.Context
 
