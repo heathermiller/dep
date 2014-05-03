@@ -14,16 +14,27 @@ import points.===
  * type-level expressions `X` and `Y` are considered equivalent of
  * there is an instance of `X =*= Y`.
  */
-trait =*=[+X, +Y]
+trait =*=[X, Y]
 object =*= {
+
+  /** Implicit materializer for point-equality. */
   implicit def ptEquiv[X <: Pt[Any], Y <: Pt[Any]](
     implicit eqPf: Proof[X === Y]): =*=[X, Y] = macro ptEquivImpl[X, Y]
   def ptEquivImpl[X <: Pt[Any]: c.WeakTypeTag, Y <: Pt[Any]: c.WeakTypeTag](
     c: Context)(eqPf: c.Tree) = {
     import c.universe._
+    val ctor = typeOf[=*=[_, _]].typeConstructor
     val xtp = implicitly[WeakTypeTag[X]].tpe
     val ytp = implicitly[WeakTypeTag[Y]].tpe
-    val eqCtor = typeOf[=*=[_, _]].typeConstructor
-    q"new $eqCtor[$xtp, $ytp] {}"
+    q"new $ctor[$xtp, $ytp] {}"
+  }
+
+  /** Implicit materializer for reflexivity. */
+  implicit def reflexiveEquiv[X]: =*=[X, X] = macro reflexiveEquivImpl[X]
+  def reflexiveEquivImpl[X: c.WeakTypeTag](c: Context) = {
+    import c.universe._
+    val ctor = typeOf[=*=[_, _]].typeConstructor
+    val xtp = implicitly[WeakTypeTag[X]].tpe
+    q"new $ctor[$xtp, $xtp] {}"
   }
 }
