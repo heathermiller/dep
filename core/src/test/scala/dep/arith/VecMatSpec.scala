@@ -40,10 +40,10 @@ class VectorsAndMatrices {
       ipf: Proof[(Zero <= I) && (I < *[M, N])]): T =
       data(interpret[Int, I])
 
-    /** Applies `f` to every coordinate. */
+    /** Applies `f` element-wise. */
     def foreach[R](f: T => R): Unit = data.foreach(f)
 
-    /** Returns the result of applying `f` point-wise. */
+    /** Returns the result of applying `f` element-wise. */
     def map[R](f: T => R)(implicit rt: ClassTag[R]): Mat[R, M, N] =
       new Mat[R, M, N](Array.tabulate[R](length) { i => f(data(i)) }, width)
 
@@ -282,6 +282,9 @@ class VecMatSpec extends VectorsAndMatrices with FlatSpecLike with Matchers {
       0, 0, 0
     )))
 
+    // Matrix multiplication seen as the inner product of vectors
+    // rows/columns with element-wise multiplication given by the
+    // outer product of the rows-columns pairs.
     val b2 = a.t.asRowMajVec.t * a.asRowMajVec.map(_.t)
     b2.asScalar should equal (b1)
   }
