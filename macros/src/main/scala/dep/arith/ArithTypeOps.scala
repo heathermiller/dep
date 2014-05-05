@@ -41,41 +41,41 @@ object + {
 }
 
 /** Generic macro type class for addition. */
-trait Operator_+[A, B, C] extends BinOperator[A, B, C]
+trait Operator_+[-A, -B, +C] extends BinOperator[A, B, C]
 object Operator_+ {
 
   // Optimized type class instances for "literal" types.
 
   /** Compile-time integer addition. */
   implicit object Int_+ extends Operator_+[Int, Int, Int] {
-    def internal$apply(x: Int, y: Int) = x + y
+    def internal$apply(x: Int, y: Int): Int = x + y
     override def apply(x: Int, y: Int): Int = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Int](c)(x, y, _+_)
+    def impl(c: Context)(x: c.Tree, y: c.Tree) =
+      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer addition. */
   implicit object Long_+ extends Operator_+[Long, Long, Long] {
-    def internal$apply(x: Long, y: Long) = x + y
+    def internal$apply(x: Long, y: Long): Long = x + y
     override def apply(x: Long, y: Long): Long = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Long](c)(x, y, _+_)
+    def impl(c: Context)(x: c.Tree, y: c.Tree) =
+      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point addition. */
   implicit object Float_+ extends Operator_+[Float, Float, Float] {
-    def internal$apply(x: Float, y: Float) = x + y
+    def internal$apply(x: Float, y: Float): Float = x + y
     override def apply(x: Float, y: Float): Float = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Float](c)(x, y, _+_)
+    def impl(c: Context)(x: c.Tree, y: c.Tree) =
+      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
   }
 
   /** Compile-time double-precision floating-point addition. */
   implicit object Double_+ extends Operator_+[Double, Double, Double] {
-    def internal$apply(x: Double, y: Double) = x + y
+    def internal$apply(x: Double, y: Double): Double = x + y
     override def apply(x: Double, y: Double): Double = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Double](c)(x, y, _+_)
+    def impl(c: Context)(x: c.Tree, y: c.Tree) =
+      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
   }
 }
 
@@ -90,41 +90,41 @@ object - {
 }
 
 /** Generic macro type class for subtraction. */
-trait Operator_-[A, B, C] extends BinOperator[A, B, C]
+trait Operator_-[-A, -B, +C] extends BinOperator[A, B, C]
 object Operator_- {
 
   // Optimized type class instances for "literal" types.
 
   /** Compile-time integer subtraction. */
   implicit object Int_- extends Operator_-[Int, Int, Int] {
-    def internal$apply(x: Int, y: Int) = x - y
+    def internal$apply(x: Int, y: Int): Int = x - y
     override def apply(x: Int, y: Int): Int = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Int](c)(x, y, _-_)
+      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer subtraction. */
   implicit object Long_- extends Operator_-[Long, Long, Long] {
-    def internal$apply(x: Long, y: Long) = x - y
+    def internal$apply(x: Long, y: Long): Long = x - y
     override def apply(x: Long, y: Long): Long = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Long](c)(x, y, _-_)
+      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point subtraction. */
   implicit object Float_- extends Operator_-[Float, Float, Float] {
-    def internal$apply(x: Float, y: Float) = x - y
+    def internal$apply(x: Float, y: Float): Float = x - y
     override def apply(x: Float, y: Float): Float = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Float](c)(x, y, _-_)
+      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
   }
 
   /** Compile-time double-precision floating-point subtraction. */
   implicit object Double_- extends Operator_-[Double, Double, Double] {
-    def internal$apply(x: Double, y: Double) = x - y
+    def internal$apply(x: Double, y: Double): Double = x - y
     override def apply(x: Double, y: Double): Double = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Double](c)(x, y, _-_)
+      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
   }
 }
 
@@ -139,41 +139,41 @@ object * {
 }
 
 /** Generic macro type class for multiplication. */
-trait Operator_*[A, B, C] extends BinOperator[A, B, C]
+trait Operator_*[-A, -B, +C] extends BinOperator[A, B, C]
 object Operator_* {
 
   // Optimized type class instances for "literal" types.
 
   /** Compile-time integer multiplication. */
   implicit object Int_* extends Operator_*[Int, Int, Int] {
-    def internal$apply(x: Int, y: Int) = x * y
+    def internal$apply(x: Int, y: Int): Int = x * y
     override def apply(x: Int, y: Int): Int = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Int](c)(x, y, _*_)
+      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer multiplication. */
   implicit object Long_* extends Operator_*[Long, Long, Long] {
-    def internal$apply(x: Long, y: Long) = x * y
+    def internal$apply(x: Long, y: Long): Long = x * y
     override def apply(x: Long, y: Long): Long = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Long](c)(x, y, _*_)
+      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point multiplication. */
   implicit object Float_* extends Operator_*[Float, Float, Float] {
-    def internal$apply(x: Float, y: Float) = x * y
+    def internal$apply(x: Float, y: Float): Float = x * y
     override def apply(x: Float, y: Float): Float = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Float](c)(x, y, _*_)
+      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
   }
 
   /** Compile-time double-precision floating-point multiplication. */
   implicit object Double_* extends Operator_*[Double, Double, Double] {
-    def internal$apply(x: Double, y: Double) = x * y
+    def internal$apply(x: Double, y: Double): Double = x * y
     override def apply(x: Double, y: Double): Double = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Double](c)(x, y, _*_)
+      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
   }
 }
 
@@ -188,7 +188,7 @@ object / {
 }
 
 /** Generic macro type class for division. */
-trait Operator_/[A, B, C] extends BinOperator[A, B, C]
+trait Operator_/[-A, -B, +C] extends BinOperator[A, B, C]
 object Operator_/ {
 
   // Optimized type class instances for "literal" types.
@@ -198,7 +198,7 @@ object Operator_/ {
     def internal$apply(x: Int, y: Int) = x / y
     override def apply(x: Int, y: Int): Int = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Int](c)(x, y, _/_)
+      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer division. */
@@ -206,7 +206,7 @@ object Operator_/ {
     def internal$apply(x: Long, y: Long) = x / y
     override def apply(x: Long, y: Long): Long = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Long](c)(x, y, _/_)
+      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point division. */
@@ -214,7 +214,7 @@ object Operator_/ {
     def internal$apply(x: Float, y: Float) = x / y
     override def apply(x: Float, y: Float): Float = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Float](c)(x, y, _/_)
+      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
   }
 
   /** Compile-time double-precision floating-point division. */
@@ -222,7 +222,7 @@ object Operator_/ {
     def internal$apply(x: Double, y: Double) = x / y
     override def apply(x: Double, y: Double): Double = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Double](c)(x, y, _/_)
+      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
   }
 }
 
@@ -239,7 +239,7 @@ object < {
 }
 
 /** Generic macro type class for less-than comparison. */
-trait Operator_<[A, B] extends BinOperator[A, B, Boolean]
+trait Operator_<[-A, -B] extends BinOperator[A, B, Boolean]
 object Operator_< {
 
   // Optimized type class instances for "literal" types.
@@ -249,7 +249,7 @@ object Operator_< {
     def internal$apply(x: Int, y: Int) = x < y
     override def apply(x: Int, y: Int): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Boolean](c)(x, y, _<_)
+      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer less-than comparison. */
@@ -257,7 +257,7 @@ object Operator_< {
     def internal$apply(x: Long, y: Long) = x < y
     override def apply(x: Long, y: Long): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Boolean](c)(x, y, _<_)
+      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point less-than comparison. */
@@ -265,7 +265,7 @@ object Operator_< {
     def internal$apply(x: Float, y: Float) = x < y
     override def apply(x: Float, y: Float): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Boolean](c)(x, y, _<_)
+      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time double-precision floating-point less-than comparison. */
@@ -273,7 +273,7 @@ object Operator_< {
     def internal$apply(x: Double, y: Double) = x < y
     override def apply(x: Double, y: Double): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Boolean](c)(x, y, _<_)
+      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
   }
 }
 
@@ -288,7 +288,7 @@ object <= {
 }
 
 /** Generic macro type class for less-than-or-equal comparison. */
-trait Operator_<=[A, B] extends BinOperator[A, B, Boolean]
+trait Operator_<=[-A, -B] extends BinOperator[A, B, Boolean]
 object Operator_<= {
 
   // Optimized type class instances for "literal" types.
@@ -298,7 +298,7 @@ object Operator_<= {
     def internal$apply(x: Int, y: Int) = x <= y
     override def apply(x: Int, y: Int): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Boolean](c)(x, y, _<=_)
+      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer less-than-or-equal comparison. */
@@ -306,7 +306,7 @@ object Operator_<= {
     def internal$apply(x: Long, y: Long) = x <= y
     override def apply(x: Long, y: Long): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Boolean](c)(x, y, _<=_)
+      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point less-than-or-equal comparison. */
@@ -314,7 +314,7 @@ object Operator_<= {
     def internal$apply(x: Float, y: Float) = x <= y
     override def apply(x: Float, y: Float): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Boolean](c)(x, y, _<=_)
+      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
   }
 
   /**
@@ -325,7 +325,7 @@ object Operator_<= {
     def internal$apply(x: Double, y: Double) = x <= y
     override def apply(x: Double, y: Double): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Boolean](c)(x, y, _<=_)
+      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
   }
 }
 
@@ -340,7 +340,7 @@ object > {
 }
 
 /** Generic macro type class for greater-than comparison. */
-trait Operator_>[A, B] extends BinOperator[A, B, Boolean]
+trait Operator_>[-A, -B] extends BinOperator[A, B, Boolean]
 object Operator_> {
 
   // Optimized type class instances for "literal" types.
@@ -350,7 +350,7 @@ object Operator_> {
     def internal$apply(x: Int, y: Int) = x > y
     override def apply(x: Int, y: Int): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Boolean](c)(x, y, _>_)
+      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer greater-than comparison. */
@@ -358,7 +358,7 @@ object Operator_> {
     def internal$apply(x: Long, y: Long) = x > y
     override def apply(x: Long, y: Long): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Boolean](c)(x, y, _>_)
+      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point greater-than comparison. */
@@ -366,7 +366,7 @@ object Operator_> {
     def internal$apply(x: Float, y: Float) = x > y
     override def apply(x: Float, y: Float): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Boolean](c)(x, y, _>_)
+      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time double-precision floating-point greater-than comparison. */
@@ -374,7 +374,7 @@ object Operator_> {
     def internal$apply(x: Double, y: Double) = x > y
     override def apply(x: Double, y: Double): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Boolean](c)(x, y, _>_)
+      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
   }
 }
 
@@ -389,7 +389,7 @@ object >= {
 }
 
 /** Generic macro type class for greater-than-or-equal comparison. */
-trait Operator_>=[A, B] extends BinOperator[A, B, Boolean]
+trait Operator_>=[-A, -B] extends BinOperator[A, B, Boolean]
 object Operator_>= {
 
   // Optimized type class instances for "literal" types.
@@ -399,7 +399,7 @@ object Operator_>= {
     def internal$apply(x: Int, y: Int) = x >= y
     override def apply(x: Int, y: Int): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Int, Int, Boolean](c)(x, y, _>=_)
+      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time long integer greater-than-or-equal comparison. */
@@ -407,7 +407,7 @@ object Operator_>= {
     def internal$apply(x: Long, y: Long) = x >= y
     override def apply(x: Long, y: Long): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Long, Long, Boolean](c)(x, y, _>=_)
+      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
   }
 
   /** Compile-time floating-point greater-than-or-equal comparison. */
@@ -415,7 +415,7 @@ object Operator_>= {
     def internal$apply(x: Float, y: Float) = x >= y
     override def apply(x: Float, y: Float): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Float, Float, Boolean](c)(x, y, _>=_)
+      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
   }
 
   /**
@@ -426,22 +426,45 @@ object Operator_>= {
     def internal$apply(x: Double, y: Double) = x >= y
     override def apply(x: Double, y: Double): Boolean = macro impl
     def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      TreeEvaluator.evalAndApplyBinOp[Double, Double, Boolean](c)(x, y, _>=_)
+      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
   }
 }
 
 
 // Helpers
 
-/** Generic operator macro type class. */
-trait BinOperator[A, B, C] {
+/** Base trait for generic operator macro type class. */
+trait BinOperator[-A, -B, +C] {
   def apply(x: A, y: B): C = macro BinOperator.impl[A, B, C]
   def internal$apply(x: A, y: B): C
 }
 object BinOperator {
+
+  /** Default (fall-back) operator macro implementation. */
   def impl[A, B, C](c: Context)(x: c.Tree, y: c.Tree): c.Tree = {
     import c.universe._
     q"${c.prefix}.internal$$apply($x, $y)"
+  }
+
+  /** Helper method for opportunistic compile-time evaluation. */
+  def evalLit[A, B, C](c: Context)(x: c.Tree, y: c.Tree,
+    op: (A, B) => C): c.Tree = {
+    import c.universe._
+
+    // Check whether `x` and `y` are literals.  If yes, evaluate the
+    // operator immediately (i.e. at compile-time) and return the
+    // result wrapped in another literal.
+    val xtc = c.typecheck(x)
+    val ytc = c.typecheck(y)
+    (xtc, ytc) match {
+
+      // Literal.  Evaluate immediately.
+      case (Literal(Constant(_)), Literal(Constant(_))) =>
+        TreeEvaluator.evalAndApplyBinOp(c)(xtc, ytc, op)
+
+      // Not a literal.  Fall back to default.
+      case _ => impl(c)(xtc, ytc)
+    }
   }
 }
 
