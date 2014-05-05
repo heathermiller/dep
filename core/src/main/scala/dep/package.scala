@@ -14,7 +14,7 @@ package object dep {
    * Given a type-level representation `X <: Pt[A]` of a term-level
    * expression `x: A`, `interpret[A, X]` returns `x`.
    */
-  def interpret[A, X <: Pt[A]](implicit ip: Interpreter[A, X]): A =
+  def interpret[A, X](implicit ip: Interpreter[A, X]): A =
     macro PackageMacros.interpretImpl[A]
 
   /**
@@ -26,4 +26,22 @@ package object dep {
    */
   def prove[X <: Pt[Boolean]](implicit pf: Proof[X]): Unit =
     macro PackageMacros.proveImpl[X]
+
+  /**
+   * Implicit materializer for type-level literals.
+   *
+   * Parameters of the [[Pt]] type annotated with the `@lit`
+   * annotation represent type-level literals.
+   *
+   * Use case:
+   * {{{
+   *   import ch.epfl.lamp.dep._
+   *
+   *   interpret[Boolean, Pt[Boolean @lit(true)]]  // returns `true`
+   *   prove[Pt[Boolean@lit(true)] === True]       // succeeds
+   *   prove[Pt[Boolean@lit(true)] === False]      // fails
+   * }}}
+   */
+  implicit def evalLit[A, X <: Pt[A]]: Interpreter[A, X] =
+    macro Literals.evalImpl[A, X]
 }

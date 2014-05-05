@@ -7,13 +7,12 @@ import scala.reflect.macros.whitebox.Context
 /**
  * Annotation class for type-level literals.
  *
- * Parameters of the [[Cst]] type annotated with instances of this
+ * Parameters of the [[Pt]] type annotated with instances of this
  * class represent type-level literals.
  *
  * Use case:
  * {{{
  *   import ch.epfl.lamp.dep._
- *   import points._
  *
  *   interpret[Boolean, Cst[Boolean @lit(true)]]  // returns `true`
  *   prove[Cst[Boolean@lit(true)] === True]       // succeeds
@@ -21,15 +20,6 @@ import scala.reflect.macros.whitebox.Context
  * }}}
  */
 final class lit(x: Any) extends StaticAnnotation
-
-/** Type-level constant container trait. */
-sealed trait Cst[+A] extends Pt[A]
-object Cst {
-
-  /** Implicit materializer for type-level literals. */
-  implicit def evalInt[A, X <: Cst[A]]: Interpreter[A, X] =
-    macro Literals.evalImpl[A, X]
-}
 
 
 /** Macro bundle for materializing type-level literals. */
@@ -40,7 +30,7 @@ class Literals(val c: Context) {
     import c.universe._
     val xtp = implicitly[WeakTypeTag[X]].tpe.dealias
     val ctp = xtp.typeConstructor
-    if (ctp != typeOf[Cst[_]].typeConstructor)
+    if (ctp != typeOf[Pt[_]].typeConstructor)
       c.abort(c.enclosingPosition, s"not a literal container: $ctp")
     val (atp, annots) = xtp.typeArgs match {
       case AnnotatedType(annots, atp) :: Nil => (atp, annots)

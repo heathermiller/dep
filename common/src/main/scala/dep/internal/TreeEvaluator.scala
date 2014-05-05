@@ -50,4 +50,31 @@ object TreeEvaluator {
     import c.universe._
     eval[A](c)(q"$ip.value")
   }
+
+  /**
+   * Helper method for evaluating unary operations at compile time.
+   *
+   * Given an unary operation `op(x)` returning a value of literal
+   * type and a tree for the arguments `x` of the operation, this
+   * method will return the literal (tree) `op(x)`.
+   */
+  def evalAndApplyOp[A, B](c: Context)(x: c.Tree, op: A => B): c.Tree = {
+    import c.universe._
+    Literal(Constant(TreeEvaluator.eval[A](c)(x)))
+  }
+
+  /**
+   * Helper method for evaluating binary operations at compile time.
+   *
+   * Given a binary operation `op(x, y)` returning a value of literal
+   * type and trees for the arguments `x` and `y` of the operation,
+   * this method will return the literal (tree) `op(x, y)`.
+   */
+  def evalAndApplyBinOp[A, B, C](c: Context)(
+    x: c.Tree, y: c.Tree, op: (A, B) => C): c.Tree = {
+    import c.universe._
+    val xv = TreeEvaluator.eval[A](c)(x)
+    val yv = TreeEvaluator.eval[B](c)(y)
+    Literal(Constant(op(xv, yv)))
+  }
 }

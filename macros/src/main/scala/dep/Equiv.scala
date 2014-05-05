@@ -18,14 +18,15 @@ object =*= {
 
   /** Implicit materializer for point-equality. */
   implicit def ptEquiv[X <: Pt[Any], Y <: Pt[Any]](
-    implicit eqPf: Proof[X === Y]): =*=[X, Y] = macro ptEquivImpl[X, Y]
+    implicit eqPf: Proof[X ==! Y]): =*=[X, Y] = macro ptEquivImpl[X, Y]
   def ptEquivImpl[X <: Pt[Any]: c.WeakTypeTag, Y <: Pt[Any]: c.WeakTypeTag](
     c: Context)(eqPf: c.Tree) = {
     import c.universe._
     val ctor = typeOf[=*=[_, _]].typeConstructor
     val xtp = implicitly[WeakTypeTag[X]].tpe
     val ytp = implicitly[WeakTypeTag[Y]].tpe
-    q"new $ctor[$xtp, $ytp] {}"
+    val eqtp = appliedType(ctor, List(xtp, ytp))
+    q"new $eqtp {}"
   }
 
   /** Implicit materializer for reflexivity. */

@@ -34,11 +34,8 @@ object ! {
   implicit def eval[X <: Pt[Boolean]](
     implicit xip: Interpreter[Boolean, X]): Interpreter[Boolean, ![X]] =
     macro evalImpl[X]
-  def evalImpl[X <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree) = {
-    import c.universe._
-    Interpreter.fromLiteral[Boolean, ![X]](c)(
-      !TreeEvaluator.evalInterpreter[Boolean](c)(xip))
-  }
+  def evalImpl[X <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree) =
+    Interpreter.fromLiteralOp[Boolean, Boolean, ![X]](c)(xip, !_)
 }
 
 /** Type-level logic conjunction. */
@@ -48,11 +45,9 @@ object && {
     implicit xip: Interpreter[Boolean, X], yip: Interpreter[Boolean, Y])
       : Interpreter[Boolean, X && Y] = macro evalImpl[X, Y]
   def evalImpl[X <: Pt[Boolean]: c.WeakTypeTag,
-    Y <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree, yip: c.Tree) = {
-    val x = TreeEvaluator.evalInterpreter[Boolean](c)(xip)
-    val y = TreeEvaluator.evalInterpreter[Boolean](c)(yip)
-    Interpreter.fromLiteral[Boolean, X && Y](c)(x && y)
-  }
+    Y <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree, yip: c.Tree) =
+    Interpreter.fromLiteralBinOp[Boolean, Boolean, Boolean, X && Y](c)(
+      xip, yip, _ && _)
 }
 
 /** Type-level logic disjunction. */
@@ -62,23 +57,23 @@ object || {
     implicit xip: Interpreter[Boolean, X], yip: Interpreter[Boolean, Y])
       : Interpreter[Boolean, X || Y] = macro evalImpl[X, Y]
   def evalImpl[X <: Pt[Boolean]: c.WeakTypeTag,
-    Y <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree, yip: c.Tree) = {
-    val x = TreeEvaluator.evalInterpreter[Boolean](c)(xip)
-    val y = TreeEvaluator.evalInterpreter[Boolean](c)(yip)
-    Interpreter.fromLiteral[Boolean, X || Y](c)(x || y)
-  }
+    Y <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree, yip: c.Tree) =
+    Interpreter.fromLiteralBinOp[Boolean, Boolean, Boolean, X || Y](c)(
+      xip, yip, _ || _)
 }
 
+
+// Comparisons
+
 /** Type-level equality operator. */
-trait ===[X <: Pt[Any], Y <: Pt[Any]] <: Pt[Boolean]
-object === {
-  implicit def eval[X <: Pt[Any], Y <: Pt[Any]](
+trait ==![X, Y] <: Pt[Boolean]
+object ==! {
+  implicit def eval[X, Y](
     implicit xip: Interpreter[Any, X], yip: Interpreter[Any, Y])
-      : Interpreter[Boolean, X === Y] = macro evalImpl[X, Y]
-  def evalImpl[X <: Pt[Any]: c.WeakTypeTag, Y <: Pt[Any]: c.WeakTypeTag](
-    c: Context)(xip: c.Tree, yip: c.Tree) = {
-    val x = TreeEvaluator.evalInterpreter[Any](c)(xip)
-    val y = TreeEvaluator.evalInterpreter[Any](c)(yip)
-    Interpreter.fromLiteral[Boolean, X === Y](c)(x == y)
-  }
+      : Interpreter[Boolean, X ==! Y] = macro evalImpl[X, Y]
+  def evalImpl[X: c.WeakTypeTag, Y: c.WeakTypeTag](
+    c: Context)(xip: c.Tree, yip: c.Tree) =
+    Interpreter.fromLiteralBinOp[Any, Any, Boolean, X ==! Y](c)(
+      xip, yip, _ == _)
 }
+

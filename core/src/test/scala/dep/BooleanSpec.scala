@@ -29,10 +29,10 @@ class BooleanSpec extends FlatSpecLike with Matchers {
     interpret[Boolean, False || False] should equal(false)
 
     // Equalities
-    interpret[Boolean, True  === True ] should equal(true)
-    interpret[Boolean, True  === False] should equal(false)
-    interpret[Boolean, False === True ] should equal(false)
-    interpret[Boolean, False === False] should equal(true)
+    interpret[Boolean, True  ==! True ] should equal(true)
+    interpret[Boolean, True  ==! False] should equal(false)
+    interpret[Boolean, False ==! True ] should equal(false)
+    interpret[Boolean, False ==! False] should equal(true)
   }
 
   it should "prove some logical assertions" in {
@@ -52,7 +52,7 @@ class BooleanSpec extends FlatSpecLike with Matchers {
     prove[False || True ]
 
     // Equalities
-    prove[True  === True ]
-    prove[False === False]
+    prove[True  ==! True ]
+    prove[False ==! False]
   }
 }
