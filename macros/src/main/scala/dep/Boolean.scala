@@ -66,14 +66,14 @@ object || {
 // Comparisons
 
 /** Type-level equality operator. */
-trait ==![X, Y] <: Pt[Boolean]
-object ==! {
+trait ==[X, Y] <: Pt[Boolean]
+object == {
   implicit def eval[X, Y](
     implicit xip: Interpreter[Any, X], yip: Interpreter[Any, Y])
-      : Interpreter[Boolean, X ==! Y] = macro evalImpl[X, Y]
+      : Interpreter[Boolean, X == Y] = macro evalImpl[X, Y]
   def evalImpl[X: c.WeakTypeTag, Y: c.WeakTypeTag](
     c: Context)(xip: c.Tree, yip: c.Tree) =
-    Interpreter.fromLiteralBinOp[Any, Any, Boolean, X ==! Y](c)(
+    Interpreter.fromLiteralBinOp[Any, Any, Boolean, X == Y](c)(
       xip, yip, _ == _)
 }
 

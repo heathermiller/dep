@@ -64,32 +64,32 @@ class ArithSpec extends FlatSpecLike with Matchers {
   it should "prove some arithmetic assertions" in {
 
     // Basics
-    prove[Zero ==! Zero]
-    prove[One  ==! One]
-    prove[Pt[Int@lit(123)] ==! Pt[Int@lit(123)]]
-    prove[Pt[Double@lit(3.0)] ==! Pt[Double@lit(3.0)]]
-    prove[Three ==! Pt[Double@lit(3.0)]]
+    prove[Zero == Zero]
+    prove[One  == One]
+    prove[Pt[Int@lit(123)] == Pt[Int@lit(123)]]
+    prove[Pt[Double@lit(3.0)] == Pt[Double@lit(3.0)]]
+    prove[Three == Pt[Double@lit(3.0)]]
 
     // Sums
-    prove[Zero + One ==! One]
-    prove[Pt[Int@lit(123)] + Two ==! Pt[Int@lit(125)]]
-    prove[Pt[Double@lit(2.0)] + Pt[Double@lit(3.0)] ==! Pt[Double@lit(5.0)]]
+    prove[Zero + One == One]
+    prove[Pt[Int@lit(123)] + Two == Pt[Int@lit(125)]]
+    prove[Pt[Double@lit(2.0)] + Pt[Double@lit(3.0)] == Pt[Double@lit(5.0)]]
 
     // Differences
-    prove[One - Zero  ==! One]
-    prove[Three - Two ==! One]
-    prove[Pt[Int@lit(123)] - Two ==! Pt[Int@lit(121)]]
+    prove[One - Zero  == One]
+    prove[Three - Two == One]
+    prove[Pt[Int@lit(123)] - Two == Pt[Int@lit(121)]]
 
     // Products
-    prove[*[One, Zero]  ==! Zero]
-    prove[*[One, Three] ==! Three]
-    prove[*[Pt[Int@lit(44)], Two] ==! Pt[Int@lit(88)]]
+    prove[*[One, Zero]  == Zero]
+    prove[*[One, Three] == Three]
+    prove[*[Pt[Int@lit(44)], Two] == Pt[Int@lit(88)]]
 
     // Quotients
-    prove[Zero / Two ==! Zero]
-    prove[Two / One  ==! Two]
-    prove[Two / Two  ==! One]
-    prove[Pt[Int@lit(16)] / Two ==! Pt[Int@lit(8)]]
+    prove[Zero / Two == Zero]
+    prove[Two / One  == Two]
+    prove[Two / Two  == One]
+    prove[Pt[Int@lit(16)] / Two == Pt[Int@lit(8)]]
 
     // Comparisons
     prove[Zero < Two]

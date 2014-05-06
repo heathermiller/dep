@@ -282,7 +282,7 @@ class VecMatSpec extends VectorsAndMatrices with FlatSpecLike with Matchers {
       0, 0, 0
     )))
 
-    // Matrix multiplication seen as the inner product of vectors
+    // Matrix multiplication seen as the inner product of vectors of
     // rows/columns with element-wise multiplication given by the
     // outer product of the rows-columns pairs.
     val b2 = a.t.asRowMajVec.t * a.asRowMajVec.map(_.t)
