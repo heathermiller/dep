@@ -2,78 +2,80 @@ package ch.epfl.lamp.dep
 
 import scala.reflect.macros.whitebox.Context
 
-import internal.TreeEvaluator
-
-
-// FIXME: Remove all this boiler plate.  Generate these traits and
-// their interpreters using a macro annotation.
-
 
 // Type-level Boolean literals.
 
 /** Type-level truth literal. */
-sealed trait True extends Pt[Boolean]
+sealed trait True
 object True {
-  implicit def eval: Interpreter[Boolean, True] = macro evalImpl
-  def evalImpl(c: Context) = Interpreter.fromLiteral[Boolean, True](c)(true)
+  def apply: Boolean = macro applyImpl
+  def applyImpl(c: Context) = { import c.universe._; q"true" }
 }
 
 /** Type-level falsehood literal. */
-sealed trait False extends Pt[Boolean]
+sealed trait False
 object False {
-  implicit def eval: Interpreter[Boolean, False] = macro evalImpl
-  def evalImpl(c: Context) = Interpreter.fromLiteral[Boolean, False](c)(false)
+  def apply: Boolean = macro applyImpl
+  def applyImpl(c: Context) = { import c.universe._; q"false" }
 }
 
 
 // Type-level logic operations.
 
 /** Type-level logic negation. */
-trait ![X <: Pt[Boolean]] <: Pt[Boolean]
+trait ![X]
 object ! {
-  implicit def eval[X <: Pt[Boolean]](
-    implicit xip: Interpreter[Boolean, X]): Interpreter[Boolean, ![X]] =
-    macro evalImpl[X]
-  def evalImpl[X <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree) =
-    Interpreter.fromLiteralOp[Boolean, Boolean, ![X]](c)(xip, !_)
+  def apply(x: Boolean): Boolean = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree): c.Tree = {
+    import c.universe._
+    x match {
+      case Literal(Constant(x: Boolean)) => Literal(Constant(!x))
+      case _ => q"!$x"
+    }
+  }
 }
 
 /** Type-level logic conjunction. */
-trait &&[X <: Pt[Boolean], Y <: Pt[Boolean]] <: Pt[Boolean]
+trait &&[X, Y]
 object && {
-  implicit def eval[X <: Pt[Boolean], Y <: Pt[Boolean]](
-    implicit xip: Interpreter[Boolean, X], yip: Interpreter[Boolean, Y])
-      : Interpreter[Boolean, X && Y] = macro evalImpl[X, Y]
-  def evalImpl[X <: Pt[Boolean]: c.WeakTypeTag,
-    Y <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree, yip: c.Tree) =
-    Interpreter.fromLiteralBinOp[Boolean, Boolean, Boolean, X && Y](c)(
-      xip, yip, _ && _)
+  def apply(x: Boolean, y: Boolean): Boolean = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    (x, y) match {
+      case (Literal(Constant(x: Boolean)), Literal(Constant(y: Boolean))) =>
+        Literal(Constant(x && y))
+      case _ => q"$x && y"
+    }
+  }
 }
 
 /** Type-level logic disjunction. */
-trait ||[X <: Pt[Boolean], Y <: Pt[Boolean]] <: Pt[Boolean]
+trait ||[X, Y]
 object || {
-  implicit def eval[X <: Pt[Boolean], Y <: Pt[Boolean]](
-    implicit xip: Interpreter[Boolean, X], yip: Interpreter[Boolean, Y])
-      : Interpreter[Boolean, X || Y] = macro evalImpl[X, Y]
-  def evalImpl[X <: Pt[Boolean]: c.WeakTypeTag,
-    Y <: Pt[Boolean]: c.WeakTypeTag](c: Context)(xip: c.Tree, yip: c.Tree) =
-    Interpreter.fromLiteralBinOp[Boolean, Boolean, Boolean, X || Y](c)(
-      xip, yip, _ || _)
+  def apply(x: Boolean, y: Boolean): Boolean = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    (x, y) match {
+      case (Literal(Constant(x: Boolean)), Literal(Constant(y: Boolean))) =>
+        Literal(Constant(x || y))
+      case _ => q"$x || y"
+    }
+  }
 }
 
 
 // Comparisons
 
 /** Type-level equality operator. */
-trait ==[X, Y] <: Pt[Boolean]
+trait ==[X, Y]
 object == {
-  implicit def eval[X, Y](
-    implicit xip: Interpreter[Any, X], yip: Interpreter[Any, Y])
-      : Interpreter[Boolean, X == Y] = macro evalImpl[X, Y]
-  def evalImpl[X: c.WeakTypeTag, Y: c.WeakTypeTag](
-    c: Context)(xip: c.Tree, yip: c.Tree) =
-    Interpreter.fromLiteralBinOp[Any, Any, Boolean, X == Y](c)(
-      xip, yip, _ == _)
+  def apply(x: Any, y: Any): Boolean = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    (x, y) match {
+      case (Literal(Constant(x)), Literal(Constant(y))) =>
+        Literal(Constant(x == y))
+      case _ => q"$x == y"
+    }
+  }
 }
-

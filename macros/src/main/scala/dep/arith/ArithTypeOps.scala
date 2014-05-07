@@ -6,76 +6,75 @@ import scala.reflect.macros.whitebox.Context
 import internal.TreeEvaluator
 
 
-// FIXME: Remove all this boiler plate.  Generate these traits and
-// their interpreters using a macro annotation.
-
-// Peano literals
+// Constants
 
 /** Type-level zero literal. */
-sealed trait Zero extends Pt[Int]
+sealed trait Zero
 object Zero {
-  implicit def eval: Interpreter[Int, Zero] = macro evalImpl
-  def evalImpl(c: Context) = Interpreter.fromLiteral[Int, Zero](c)(0)
+  def apply: Any = macro applyImpl
+  def applyImpl(c: Context) = {
+    import c.universe._
+    q"0"
+  }
 }
+
+
+// Unary arithmetic operators
 
 /** Type-level successor operator. */
-sealed trait Succ[X <: Pt[Int]] extends Pt[Int]
+sealed trait Succ[X]
 object Succ {
-  implicit def eval[X <: Pt[Int]](
-    implicit xip: Interpreter[Int, X]): Interpreter[Int, Succ[X]] =
-    macro evalImpl[X]
-  def evalImpl[X <: Pt[Int]: c.WeakTypeTag](c: Context)(xip: c.Tree) =
-    Interpreter.fromLiteralOp[Int, Int, Succ[X]](c)(xip, _ + 1)
+  def apply(x: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree) = {
+    import c.universe._
+    val default = q"$x + 1"
+    x match {
+      // Constant folding for primitive types
+      case Literal(Constant(x)) => x match {
+        case x: Byte   => Literal(Constant(x + 1))
+        case x: Char   => Literal(Constant(x + 1))
+        case x: Short  => Literal(Constant(x + 1))
+        case x: Int    => Literal(Constant(x + 1))
+        case x: Long   => Literal(Constant(x + 1))
+        case x: Float  => Literal(Constant(x + 1))
+        case x: Double => Literal(Constant(x + 1))
+        case x: String => Literal(Constant(x + 1))
+        case _ => default
+      }
+      case _ => default
+    }
+  }
 }
 
-
-// Arithmetic operators
+// Binary arithmetic operators
 
 /** Type-level addition. */
 sealed trait +[X, Y]
 object + {
-  implicit def eval[A, B, C, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_+[A, B, C]): Interpreter[C, X + Y] =
-    macro BinOpInterpreterImpl.evalImpl[C, X, Y, +]
-}
-
-/** Generic macro type class for addition. */
-trait Operator_+[-A, -B, +C] extends BinOperator[A, B, C]
-object Operator_+ {
-
-  // Optimized type class instances for "literal" types.
-
-  /** Compile-time integer addition. */
-  implicit object Int_+ extends Operator_+[Int, Int, Int] {
-    def internal$apply(x: Int, y: Int): Int = x + y
-    override def apply(x: Int, y: Int): Int = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree) =
-      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time long integer addition. */
-  implicit object Long_+ extends Operator_+[Long, Long, Long] {
-    def internal$apply(x: Long, y: Long): Long = x + y
-    override def apply(x: Long, y: Long): Long = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree) =
-      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time floating-point addition. */
-  implicit object Float_+ extends Operator_+[Float, Float, Float] {
-    def internal$apply(x: Float, y: Float): Float = x + y
-    override def apply(x: Float, y: Float): Float = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree) =
-      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time double-precision floating-point addition. */
-  implicit object Double_+ extends Operator_+[Double, Double, Double] {
-    def internal$apply(x: Double, y: Double): Double = x + y
-    override def apply(x: Double, y: Double): Double = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree) =
-      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    val default = q"$x + $y"
+    (x, y) match {
+      // Constant folding for primitive types
+      case (Literal(Constant(x)), Literal(Constant(y))) => (x, y) match {
+        case (x: String, _)  => Literal(Constant(x + y.toString))
+        case (_, y: String)  => Literal(Constant(x.toString + y))
+        case _ if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+          (x, y) match {
+            case (x: Double, _) => Literal(Constant(x + toDouble(y)))
+            case (_, y: Double) => Literal(Constant(toDouble(x) + y))
+            case (x: Float, _)  => Literal(Constant(x + toFloat(y)))
+            case (_, y: Float)  => Literal(Constant(toFloat(x) + y))
+            case (x: Long, _)   => Literal(Constant(x + toLong(y)))
+            case (_, y: Long)   => Literal(Constant(toLong(x) + y))
+            case _              => Literal(Constant(toInt(x) + toInt(y)))
+          }
+        case _ => default
+      }
+      case _ => default
+    }
   }
 }
 
@@ -83,407 +82,494 @@ object Operator_+ {
 /** Type-level subtraction. */
 sealed trait -[X, Y]
 object - {
-  implicit def eval[A, B, C, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_-[A, B, C]): Interpreter[C, X - Y] =
-    macro BinOpInterpreterImpl.evalImpl[C, X, Y, -]
-}
-
-/** Generic macro type class for subtraction. */
-trait Operator_-[-A, -B, +C] extends BinOperator[A, B, C]
-object Operator_- {
-
-  // Optimized type class instances for "literal" types.
-
-  /** Compile-time integer subtraction. */
-  implicit object Int_- extends Operator_-[Int, Int, Int] {
-    def internal$apply(x: Int, y: Int): Int = x - y
-    override def apply(x: Int, y: Int): Int = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time long integer subtraction. */
-  implicit object Long_- extends Operator_-[Long, Long, Long] {
-    def internal$apply(x: Long, y: Long): Long = x - y
-    override def apply(x: Long, y: Long): Long = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time floating-point subtraction. */
-  implicit object Float_- extends Operator_-[Float, Float, Float] {
-    def internal$apply(x: Float, y: Float): Float = x - y
-    override def apply(x: Float, y: Float): Float = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time double-precision floating-point subtraction. */
-  implicit object Double_- extends Operator_-[Double, Double, Double] {
-    def internal$apply(x: Double, y: Double): Double = x - y
-    override def apply(x: Double, y: Double): Double = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    (x, y) match {
+      // Constant folding for primitive numeric types.
+      case (Literal(Constant(x)), Literal(Constant(y)))
+          if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+        (x, y) match {
+          case (x: Double, _) => Literal(Constant(x - toDouble(y)))
+          case (_, y: Double) => Literal(Constant(toDouble(x) - y))
+          case (x: Float, _)  => Literal(Constant(x - toFloat(y)))
+          case (_, y: Float)  => Literal(Constant(toFloat(x) - y))
+          case (x: Long, _)   => Literal(Constant(x - toLong(y)))
+          case (_, y: Long)   => Literal(Constant(toLong(x) - y))
+          case _              => Literal(Constant(toInt(x) - toInt(y)))
+        }
+      case _ => q"$x - $y"
+    }
   }
 }
 
-
-/** Type-level integer multiplication. */
+/** Type-level multiplication. */
 sealed trait *[X, Y]
 object * {
-  implicit def eval[A, B, C, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_*[A, B, C]): Interpreter[C, *[X, Y]] =
-    macro BinOpInterpreterImpl.evalImpl[C, X, Y, *]
-}
-
-/** Generic macro type class for multiplication. */
-trait Operator_*[-A, -B, +C] extends BinOperator[A, B, C]
-object Operator_* {
-
-  // Optimized type class instances for "literal" types.
-
-  /** Compile-time integer multiplication. */
-  implicit object Int_* extends Operator_*[Int, Int, Int] {
-    def internal$apply(x: Int, y: Int): Int = x * y
-    override def apply(x: Int, y: Int): Int = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time long integer multiplication. */
-  implicit object Long_* extends Operator_*[Long, Long, Long] {
-    def internal$apply(x: Long, y: Long): Long = x * y
-    override def apply(x: Long, y: Long): Long = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time floating-point multiplication. */
-  implicit object Float_* extends Operator_*[Float, Float, Float] {
-    def internal$apply(x: Float, y: Float): Float = x * y
-    override def apply(x: Float, y: Float): Float = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time double-precision floating-point multiplication. */
-  implicit object Double_* extends Operator_*[Double, Double, Double] {
-    def internal$apply(x: Double, y: Double): Double = x * y
-    override def apply(x: Double, y: Double): Double = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    val default = q"$x * $y"
+    (x, y) match {
+      // Constant folding for primitive types
+      case (Literal(Constant(x)), Literal(Constant(y))) => (x, y) match {
+        case (x: String, y: Int)  => Literal(Constant(x * y))
+        case _ if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+          (x, y) match {
+            case (x: Double, _) => Literal(Constant(x * toDouble(y)))
+            case (_, y: Double) => Literal(Constant(toDouble(x) * y))
+            case (x: Float, _)  => Literal(Constant(x * toFloat(y)))
+            case (_, y: Float)  => Literal(Constant(toFloat(x) * y))
+            case (x: Long, _)   => Literal(Constant(x * toLong(y)))
+            case (_, y: Long)   => Literal(Constant(toLong(x) * y))
+            case _              => Literal(Constant(toInt(x) * toInt(y)))
+          }
+        case _ => default
+      }
+      case _ => default
+    }
   }
 }
-
 
 /** Type-level division. */
 sealed trait /[X, Y]
 object / {
-  implicit def eval[A, B, C, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_/[A, B, C]): Interpreter[C, X / Y] =
-    macro BinOpInterpreterImpl.evalImpl[C, X, Y, /]
-}
-
-/** Generic macro type class for division. */
-trait Operator_/[-A, -B, +C] extends BinOperator[A, B, C]
-object Operator_/ {
-
-  // Optimized type class instances for "literal" types.
-
-  /** Compile-time integer division. */
-  implicit object Int_/ extends Operator_/[Int, Int, Int] {
-    def internal$apply(x: Int, y: Int) = x / y
-    override def apply(x: Int, y: Int): Int = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Int, Int, Int](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time long integer division. */
-  implicit object Long_/ extends Operator_/[Long, Long, Long] {
-    def internal$apply(x: Long, y: Long) = x / y
-    override def apply(x: Long, y: Long): Long = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Long, Long, Long](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time floating-point division. */
-  implicit object Float_/ extends Operator_/[Float, Float, Float] {
-    def internal$apply(x: Float, y: Float) = x / y
-    override def apply(x: Float, y: Float): Float = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Float, Float, Float](c)(x, y, internal$apply)
-  }
-
-  /** Compile-time double-precision floating-point division. */
-  implicit object Double_/ extends Operator_/[Double, Double, Double] {
-    def internal$apply(x: Double, y: Double) = x / y
-    override def apply(x: Double, y: Double): Double = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Double, Double, Double](c)(x, y, internal$apply)
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    (x, y) match {
+      // Constant folding for primitive numeric types.
+      case (Literal(Constant(x)), Literal(Constant(y)))
+          if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+        (x, y) match {
+          case (x: Double, _) => Literal(Constant(x / toDouble(y)))
+          case (_, y: Double) => Literal(Constant(toDouble(x) / y))
+          case (x: Float, _)  => Literal(Constant(x / toFloat(y)))
+          case (_, y: Float)  => Literal(Constant(toFloat(x) / y))
+          case (x: Long, _)   => Literal(Constant(x / toLong(y)))
+          case (_, y: Long)   => Literal(Constant(toLong(x) / y))
+          case _              => Literal(Constant(toInt(x) / toInt(y)))
+        }
+      case _ => q"$x / $y"
+    }
   }
 }
 
 
 // Comparisons
 
-/** Type-level less-than operator. */
-trait <[X, Y] <: Pt[Boolean]
+/** Type-level less-than comparison. */
+sealed trait <[X, Y]
 object < {
-  implicit def eval[A, B, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_<[A, B]): Interpreter[Boolean, X < Y] =
-    macro BinOpInterpreterImpl.evalImpl[Boolean, X, Y, <]
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    (x, y) match {
+      // Constant folding for primitive numeric types.
+      case (Literal(Constant(x)), Literal(Constant(y)))
+          if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+        (x, y) match {
+          case (x: Double, _) => Literal(Constant(x < toDouble(y)))
+          case (_, y: Double) => Literal(Constant(toDouble(x) < y))
+          case (x: Float, _)  => Literal(Constant(x < toFloat(y)))
+          case (_, y: Float)  => Literal(Constant(toFloat(x) < y))
+          case (x: Long, _)   => Literal(Constant(x < toLong(y)))
+          case (_, y: Long)   => Literal(Constant(toLong(x) < y))
+          case _              => Literal(Constant(toInt(x) < toInt(y)))
+        }
+      case _ => q"$x < $y"
+    }
+  }
 }
 
-/** Generic macro type class for less-than comparison. */
-trait Operator_<[-A, -B] extends BinOperator[A, B, Boolean]
+/** Type-level less-than-or-equal comparison. */
+sealed trait <=[X, Y]
+object <= {
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    (x, y) match {
+      // Constant folding for primitive numeric types.
+      case (Literal(Constant(x)), Literal(Constant(y)))
+          if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+        (x, y) match {
+          case (x: Double, _) => Literal(Constant(x <= toDouble(y)))
+          case (_, y: Double) => Literal(Constant(toDouble(x) <= y))
+          case (x: Float, _)  => Literal(Constant(x <= toFloat(y)))
+          case (_, y: Float)  => Literal(Constant(toFloat(x) <= y))
+          case (x: Long, _)   => Literal(Constant(x <= toLong(y)))
+          case (_, y: Long)   => Literal(Constant(toLong(x) <= y))
+          case _              => Literal(Constant(toInt(x) <= toInt(y)))
+        }
+      case _ => q"$x <= $y"
+    }
+  }
+}
+
+/** Type-level greater-than comparison. */
+sealed trait >[X, Y]
+object > {
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    (x, y) match {
+      // Constant folding for primitive numeric types.
+      case (Literal(Constant(x)), Literal(Constant(y)))
+          if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+        (x, y) match {
+          case (x: Double, _) => Literal(Constant(x > toDouble(y)))
+          case (_, y: Double) => Literal(Constant(toDouble(x) > y))
+          case (x: Float, _)  => Literal(Constant(x > toFloat(y)))
+          case (_, y: Float)  => Literal(Constant(toFloat(x) > y))
+          case (x: Long, _)   => Literal(Constant(x > toLong(y)))
+          case (_, y: Long)   => Literal(Constant(toLong(x) > y))
+          case _              => Literal(Constant(toInt(x) > toInt(y)))
+        }
+      case _ => q"$x > $y"
+    }
+  }
+}
+
+/** Type-level greater-than-or-equal comparison. */
+sealed trait >=[X, Y]
+object >= {
+  def apply(x: Any, y: Any): Any = macro applyImpl
+  def applyImpl(c: Context)(x: c.Tree, y: c.Tree) = {
+    import c.universe._
+    import ArithHelpers._
+    (x, y) match {
+      // Constant folding for primitive numeric types.
+      case (Literal(Constant(x)), Literal(Constant(y)))
+          if isPrimitiveNumeric(x) && isPrimitiveNumeric(y) =>
+        (x, y) match {
+          case (x: Double, _) => Literal(Constant(x >= toDouble(y)))
+          case (_, y: Double) => Literal(Constant(toDouble(x) >= y))
+          case (x: Float, _)  => Literal(Constant(x >= toFloat(y)))
+          case (_, y: Float)  => Literal(Constant(toFloat(x) >= y))
+          case (x: Long, _)   => Literal(Constant(x >= toLong(y)))
+          case (_, y: Long)   => Literal(Constant(toLong(x) >= y))
+          case _              => Literal(Constant(toInt(x) >= toInt(y)))
+        }
+      case _ => q"$x >= $y"
+    }
+  }
+}
+
+
+// Operator type classes
+
+/** Base trait for generic unary operator (constant) type class. */
+trait NullaryOperator[+C] { def apply: C }
+
+/** Base trait for generic unary operator type class. */
+trait UnaryOperator[-A, +C] { def apply(x: A): C }
+
+/** Base trait for generic binary operator type class. */
+trait BinaryOperator[-A, -B, +C] { def apply(x: A, y: B): C }
+
+/** Generic type class for addition. */
+trait Operator_+[-A, -B, +C] extends BinaryOperator[A, B, C]
+object Operator_+ {
+
+  // Default type class instances for primitive types.
+
+  /** Integer addition. */
+  implicit object Int_+ extends Operator_+[Int, Int, Int] {
+    def apply(x: Int, y: Int): Int = x + y
+  }
+
+  /** Long integer addition. */
+  implicit object Long_+ extends Operator_+[Long, Long, Long] {
+    def apply(x: Long, y: Long): Long = x + y
+  }
+
+  /** Floating-point addition. */
+  implicit object Float_+ extends Operator_+[Float, Float, Float] {
+    def apply(x: Float, y: Float): Float = x + y
+  }
+
+  /** Double-precision floating-point addition. */
+  implicit object Double_+ extends Operator_+[Double, Double, Double] {
+    def apply(x: Double, y: Double): Double = x + y
+  }
+
+  /** String concatenation. */
+  implicit object String_+ extends Operator_+[String, String, String] {
+    def apply(x: String, y: String): String = x.toString + y.toString
+  }
+}
+
+/** Generic type class for subtraction. */
+trait Operator_-[-A, -B, +C] extends BinaryOperator[A, B, C]
+object Operator_- {
+
+  // Default type class instances for primitive types.
+
+  /** Integer subtraction. */
+  implicit object Int_- extends Operator_-[Int, Int, Int] {
+    def apply(x: Int, y: Int): Int = x - y
+  }
+
+  /** Long integer subtraction. */
+  implicit object Long_- extends Operator_-[Long, Long, Long] {
+    def apply(x: Long, y: Long): Long = x - y
+  }
+
+  /** Floating-point subtraction. */
+  implicit object Float_- extends Operator_-[Float, Float, Float] {
+    def apply(x: Float, y: Float): Float = x - y
+  }
+
+  /** Double-precision floating-point subtraction. */
+  implicit object Double_- extends Operator_-[Double, Double, Double] {
+    def apply(x: Double, y: Double): Double = x - y
+  }
+}
+
+/** Generic type class for multiplication. */
+trait Operator_*[-A, -B, +C] extends BinaryOperator[A, B, C]
+object Operator_* {
+
+  // Default type class instances for primitive types.
+
+  /** Integer multiplication. */
+  implicit object Int_* extends Operator_*[Int, Int, Int] {
+    def apply(x: Int, y: Int): Int = x * y
+  }
+
+  /** Long integer multiplication. */
+  implicit object Long_* extends Operator_*[Long, Long, Long] {
+    def apply(x: Long, y: Long): Long = x * y
+  }
+
+  /** Floating-point multiplication. */
+  implicit object Float_* extends Operator_*[Float, Float, Float] {
+    def apply(x: Float, y: Float): Float = x * y
+  }
+
+  /** Double-precision floating-point multiplication. */
+  implicit object Double_* extends Operator_*[Double, Double, Double] {
+    def apply(x: Double, y: Double): Double = x * y
+  }
+
+  /** String repetition. */
+  implicit object StringInt_* extends Operator_*[String, Int, String] {
+    def apply(x: String, y: Int): String = x * y
+  }
+
+  /** String repetition. */
+  implicit object IntString_* extends Operator_*[Int, String, String] {
+    def apply(x: Int, y: String): String = y * x
+  }
+}
+
+/** Generic type class for division. */
+trait Operator_/[-A, -B, +C] extends BinaryOperator[A, B, C]
+object Operator_/ {
+
+  // Default type class instances for primitive types.
+
+  /** Integer division. */
+  implicit object Int_/ extends Operator_/[Int, Int, Int] {
+    def apply(x: Int, y: Int): Int = x / y
+  }
+
+  /** Long integer division. */
+  implicit object Long_/ extends Operator_/[Long, Long, Long] {
+    def apply(x: Long, y: Long): Long = x / y
+  }
+
+  /** Floating-point division. */
+  implicit object Float_/ extends Operator_/[Float, Float, Float] {
+    def apply(x: Float, y: Float): Float = x / y
+  }
+
+  /** Double-precision floating-point division. */
+  implicit object Double_/ extends Operator_/[Double, Double, Double] {
+    def apply(x: Double, y: Double): Double = x / y
+  }
+}
+
+/** Generic type class for less-than comparison. */
+trait Operator_<[-A, -B, +C] extends BinaryOperator[A, B, C]
 object Operator_< {
 
-  // Optimized type class instances for "literal" types.
+  // Default type class instances for primitive types.
 
-  /** Compile-time integer less-than comparison. */
-  implicit object Int_< extends Operator_<[Int, Int] {
-    def internal$apply(x: Int, y: Int) = x < y
-    override def apply(x: Int, y: Int): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
+  /** Integer less-than comparison. */
+  implicit object Int_< extends Operator_<[Int, Int, Boolean] {
+    def apply(x: Int, y: Int): Boolean = x < y
   }
 
-  /** Compile-time long integer less-than comparison. */
-  implicit object Long_< extends Operator_<[Long, Long] {
-    def internal$apply(x: Long, y: Long) = x < y
-    override def apply(x: Long, y: Long): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
+  /** Long integer less-than comparison. */
+  implicit object Long_< extends Operator_<[Long, Long, Boolean] {
+    def apply(x: Long, y: Long): Boolean = x < y
   }
 
-  /** Compile-time floating-point less-than comparison. */
-  implicit object Float_< extends Operator_<[Float, Float] {
-    def internal$apply(x: Float, y: Float) = x < y
-    override def apply(x: Float, y: Float): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
+  /** Floating-point less-than comparison. */
+  implicit object Float_< extends Operator_<[Float, Float, Boolean] {
+    def apply(x: Float, y: Float): Boolean = x < y
   }
 
-  /** Compile-time double-precision floating-point less-than comparison. */
-  implicit object Double_< extends Operator_<[Double, Double] {
-    def internal$apply(x: Double, y: Double) = x < y
-    override def apply(x: Double, y: Double): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
+  /** Double-precision floating-point less-than comparison. */
+  implicit object Double_< extends Operator_<[Double, Double, Boolean] {
+    def apply(x: Double, y: Double): Boolean = x < y
+  }
+
+  /** String less-than comparison. */
+  implicit object String_< extends Operator_<[String, String, Boolean] {
+    def apply(x: String, y: String): Boolean = x < y
   }
 }
 
-
-/** Type-level less-than-or-equal operator. */
-trait <=[X, Y] <: Pt[Boolean]
-object <= {
-  implicit def eval[A, B, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_<=[A, B]): Interpreter[Boolean, X <= Y] =
-    macro BinOpInterpreterImpl.evalImpl[Boolean, X, Y, <=]
-}
-
-/** Generic macro type class for less-than-or-equal comparison. */
-trait Operator_<=[-A, -B] extends BinOperator[A, B, Boolean]
+/** Generic type class for less-than-or-equal comparison. */
+trait Operator_<=[-A, -B, +C] extends BinaryOperator[A, B, C]
 object Operator_<= {
 
-  // Optimized type class instances for "literal" types.
+  // Default type class instances for primitive types.
 
-  /** Compile-time integer less-than-or-equal comparison. */
-  implicit object Int_<= extends Operator_<=[Int, Int] {
-    def internal$apply(x: Int, y: Int) = x <= y
-    override def apply(x: Int, y: Int): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
+  /** Integer less-than-or-equal comparison. */
+  implicit object Int_<= extends Operator_<=[Int, Int, Boolean] {
+    def apply(x: Int, y: Int): Boolean = x <= y
   }
 
-  /** Compile-time long integer less-than-or-equal comparison. */
-  implicit object Long_<= extends Operator_<=[Long, Long] {
-    def internal$apply(x: Long, y: Long) = x <= y
-    override def apply(x: Long, y: Long): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
+  /** Long integer less-than-or-equal comparison. */
+  implicit object Long_<= extends Operator_<=[Long, Long, Boolean] {
+    def apply(x: Long, y: Long): Boolean = x <= y
   }
 
-  /** Compile-time floating-point less-than-or-equal comparison. */
-  implicit object Float_<= extends Operator_<=[Float, Float] {
-    def internal$apply(x: Float, y: Float) = x <= y
-    override def apply(x: Float, y: Float): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
+  /** Floating-point less-than-or-equal comparison. */
+  implicit object Float_<= extends Operator_<=[Float, Float, Boolean] {
+    def apply(x: Float, y: Float): Boolean = x <= y
   }
 
-  /**
-   * Compile-time double-precision floating-point less-than-or-equal
-   * comparison.
-   */
-  implicit object Double_<= extends Operator_<=[Double, Double] {
-    def internal$apply(x: Double, y: Double) = x <= y
-    override def apply(x: Double, y: Double): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
+  /** Double-precision floating-point less-than-or-equal comparison. */
+  implicit object Double_<= extends Operator_<=[Double, Double, Boolean] {
+    def apply(x: Double, y: Double): Boolean = x <= y
+  }
+
+  /** String less-than-or-equal comparison. */
+  implicit object String_<= extends Operator_<=[String, String, Boolean] {
+    def apply(x: String, y: String): Boolean = x <= y
   }
 }
 
-
-/** Type-level greater-than operator. */
-trait >[X, Y] <: Pt[Boolean]
-object > {
-  implicit def eval[A, B, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_>[A, B]): Interpreter[Boolean, X > Y] =
-    macro BinOpInterpreterImpl.evalImpl[Boolean, X, Y, >]
-}
-
-/** Generic macro type class for greater-than comparison. */
-trait Operator_>[-A, -B] extends BinOperator[A, B, Boolean]
+/** Generic type class for less-than comparison. */
+trait Operator_>[-A, -B, +C] extends BinaryOperator[A, B, C]
 object Operator_> {
 
-  // Optimized type class instances for "literal" types.
+  // Default type class instances for primitive types.
 
-  /** Compile-time integer greater-than comparison. */
-  implicit object Int_> extends Operator_>[Int, Int] {
-    def internal$apply(x: Int, y: Int) = x > y
-    override def apply(x: Int, y: Int): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
+  /** Integer greater-than. */
+  implicit object Int_> extends Operator_>[Int, Int, Boolean] {
+    def apply(x: Int, y: Int): Boolean = x > y
   }
 
-  /** Compile-time long integer greater-than comparison. */
-  implicit object Long_> extends Operator_>[Long, Long] {
-    def internal$apply(x: Long, y: Long) = x > y
-    override def apply(x: Long, y: Long): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
+  /** Long integer greater-than comparison. */
+  implicit object Long_> extends Operator_>[Long, Long, Boolean] {
+    def apply(x: Long, y: Long): Boolean = x > y
   }
 
-  /** Compile-time floating-point greater-than comparison. */
-  implicit object Float_> extends Operator_>[Float, Float] {
-    def internal$apply(x: Float, y: Float) = x > y
-    override def apply(x: Float, y: Float): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
+  /** Floating-point greater-than comparison. */
+  implicit object Float_> extends Operator_>[Float, Float, Boolean] {
+    def apply(x: Float, y: Float): Boolean = x > y
   }
 
-  /** Compile-time double-precision floating-point greater-than comparison. */
-  implicit object Double_> extends Operator_>[Double, Double] {
-    def internal$apply(x: Double, y: Double) = x > y
-    override def apply(x: Double, y: Double): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
+  /** Double-precision floating-point greater-than comparison. */
+  implicit object Double_> extends Operator_>[Double, Double, Boolean] {
+    def apply(x: Double, y: Double): Boolean = x > y
+  }
+
+  /** String greater-than comparison. */
+  implicit object String_> extends Operator_>[String, String, Boolean] {
+    def apply(x: String, y: String): Boolean = x > y
   }
 }
 
-
-/** Type-level greater-than-or-equal operator. */
-trait >=[X, Y] <: Pt[Boolean]
-object >= {
-  implicit def eval[A, B, X, Y](
-    implicit xip: Interpreter[A, X], yip: Interpreter[B, Y],
-    op: Operator_>=[A, B]): Interpreter[Boolean, X >= Y] =
-    macro BinOpInterpreterImpl.evalImpl[Boolean, X, Y, >=]
-}
-
-/** Generic macro type class for greater-than-or-equal comparison. */
-trait Operator_>=[-A, -B] extends BinOperator[A, B, Boolean]
+/** Generic type class for less-than-or-equal comparison. */
+trait Operator_>=[-A, -B, +C] extends BinaryOperator[A, B, C]
 object Operator_>= {
 
-  // Optimized type class instances for "literal" types.
+  // Default type class instances for primitive types.
 
-  /** Compile-time integer greater-than-or-equal comparison. */
-  implicit object Int_>= extends Operator_>=[Int, Int] {
-    def internal$apply(x: Int, y: Int) = x >= y
-    override def apply(x: Int, y: Int): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Int, Int, Boolean](c)(x, y, internal$apply)
+  /** Integer greater-than-or-equal comparison. */
+  implicit object Int_>= extends Operator_>=[Int, Int, Boolean] {
+    def apply(x: Int, y: Int): Boolean = x >= y
   }
 
-  /** Compile-time long integer greater-than-or-equal comparison. */
-  implicit object Long_>= extends Operator_>=[Long, Long] {
-    def internal$apply(x: Long, y: Long) = x >= y
-    override def apply(x: Long, y: Long): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Long, Long, Boolean](c)(x, y, internal$apply)
+  /** Long integer greater-than-or-equal comparison. */
+  implicit object Long_>= extends Operator_>=[Long, Long, Boolean] {
+    def apply(x: Long, y: Long): Boolean = x >= y
   }
 
-  /** Compile-time floating-point greater-than-or-equal comparison. */
-  implicit object Float_>= extends Operator_>=[Float, Float] {
-    def internal$apply(x: Float, y: Float) = x >= y
-    override def apply(x: Float, y: Float): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Float, Float, Boolean](c)(x, y, internal$apply)
+  /** Floating-point greater-than-or-equal comparison. */
+  implicit object Float_>= extends Operator_>=[Float, Float, Boolean] {
+    def apply(x: Float, y: Float): Boolean = x >= y
   }
 
-  /**
-   * Compile-time double-precision floating-point
-   * greater-than-or-equal comparison.
-   */
-  implicit object Double_>= extends Operator_>=[Double, Double] {
-    def internal$apply(x: Double, y: Double) = x >= y
-    override def apply(x: Double, y: Double): Boolean = macro impl
-    def impl(c: Context)(x: c.Tree, y: c.Tree): c.Tree =
-      BinOperator.evalLit[Double, Double, Boolean](c)(x, y, internal$apply)
+  /** Double-precision floating-point greater-than-or-equal comparison. */
+  implicit object Double_>= extends Operator_>=[Double, Double, Boolean] {
+    def apply(x: Double, y: Double): Boolean = x >= y
+  }
+
+  /** String greater-than-or-equal comparison. */
+  implicit object String_>= extends Operator_>=[String, String, Boolean] {
+    def apply(x: String, y: String): Boolean = x >= y
   }
 }
 
 
 // Helpers
 
-/** Base trait for generic operator macro type class. */
-trait BinOperator[-A, -B, +C] {
-  def apply(x: A, y: B): C = macro BinOperator.impl[A, B, C]
-  def internal$apply(x: A, y: B): C
-}
-object BinOperator {
-
-  /** Default (fall-back) operator macro implementation. */
-  def impl[A, B, C](c: Context)(x: c.Tree, y: c.Tree): c.Tree = {
-    import c.universe._
-    q"${c.prefix}.internal$$apply($x, $y)"
+/** A collection of helper methods for type-level arithmetic. */
+object ArithHelpers {
+  def isPrimitiveNumeric(x: Any): Boolean = x match {
+    case _: Byte | _: Char | _: Short | _: Int | _: Long
+       | _: Float | _: Double => true
+    case _ => false
   }
 
-  /** Helper method for opportunistic compile-time evaluation. */
-  def evalLit[A, B, C](c: Context)(x: c.Tree, y: c.Tree,
-    op: (A, B) => C): c.Tree = {
-    import c.universe._
-
-    // Check whether `x` and `y` are literals.  If yes, evaluate the
-    // operator immediately (i.e. at compile-time) and return the
-    // result wrapped in another literal.
-    val xtc = c.typecheck(x)
-    val ytc = c.typecheck(y)
-    (xtc, ytc) match {
-
-      // Literal.  Evaluate immediately.
-      case (Literal(Constant(_)), Literal(Constant(_))) =>
-        TreeEvaluator.evalAndApplyBinOp(c)(xtc, ytc, op)
-
-      // Not a literal.  Fall back to default.
-      case _ => impl(c)(xtc, ytc)
-    }
+  def toInt(x: Any): Int = x match {
+    case x: Byte  => x.toInt
+    case x: Char  => x.toInt
+    case x: Short => x.toInt
+    case x: Int   => x
+    case _ => throw new java.lang.ClassCastException
   }
-}
 
+  def toLong(x: Any): Long = x match {
+    case x: Byte  => x.toLong
+    case x: Char  => x.toLong
+    case x: Short => x.toLong
+    case x: Int   => x.toLong
+    case x: Long  => x
+    case _ => throw new java.lang.ClassCastException
+  }
 
-/** Generic type-level binary operator interpreter macro bundle. */
-object BinOpInterpreterImpl {
+  def toFloat(x: Any): Float = x match {
+    case x: Byte  => x.toFloat
+    case x: Char  => x.toFloat
+    case x: Short => x.toFloat
+    case x: Int   => x.toFloat
+    case x: Long  => x.toFloat
+    case x: Float => x
+    case _ => throw new java.lang.ClassCastException
+  }
 
-  /**
-   * Generic interpreter macro implementation for type-level binary
-   * operators.
-   */
-  def evalImpl[C, X, Y, O[_, _]](c: Context)(
-    xip: c.Tree, yip: c.Tree, op: c.Tree)(
-    implicit ctt: c.WeakTypeTag[C], xtt: c.WeakTypeTag[X],
-    ytt: c.WeakTypeTag[Y], ott: c.WeakTypeTag[O[Any, Any]]) = {
-    import c.universe._
-    val ctor = ott.tpe.typeConstructor
-    val rtp = appliedType(ctor, List(xtt.tpe, ytt.tpe))
-    Interpreter.fromTreeAndTypes(c)(
-      q"$op.apply($xip.value, $yip.value)", ctt.tpe, rtp)
+  def toDouble(x: Any): Double = x match {
+    case x: Byte   => x.toDouble
+    case x: Char   => x.toDouble
+    case x: Short  => x.toDouble
+    case x: Int    => x.toDouble
+    case x: Long   => x.toDouble
+    case x: Float  => x.toDouble
+    case x: Double => x
+    case _ => throw new java.lang.ClassCastException
   }
 }

@@ -1,80 +1,94 @@
 package ch.epfl.lamp.dep
 package internal
 
-import scala.reflect.macros.whitebox.Context
+import collection.mutable.HashMap
+import scala.reflect.api.Universe
+import scala.reflect.macros.blackbox.Context
+import scala.tools.reflect.ToolBox
 
 
 /**
- * Methods for evaluating trees to runtime values.
+ * Bundle for evaluating trees to runtime values.
  */
-object TreeEvaluator {
+trait TreeEvaluator {
 
-  def dealiasType(c: Context)(t: c.Type): c.Type = {
-    import c.universe._
+  val c: Context
+  
+  import c.universe._
+
+  // /** HashMap for caching evaluated trees. */
+  // private lazy val valueCache = new HashMap[TreeWrapper, Any]
+
+  // /**
+  //  * Wrapper class to allow hash-consing trees based on structural
+  //  * equality.
+  //  */
+  // private final class TreeWrapper(val u: Universe)(val t: u.Tree) {
+  //   override def equals(that: Any): Boolean =
+  //     that.isInstanceOf[TreeWrapper] &&
+  //       t.equalsStructure(List(1))//that.asInstanceOf[TreeWrapper].t: Int)
+  //   override def hashCode: Int = t.hashCode
+  //   override def toString: String = t.toString
+  // }
+
+  def dealiasType(t: Type): Type = {
     val t2 = t.dealias
     appliedType(t2.typeConstructor, t2.typeArgs map {
-      t => dealiasType(c)(t)
+      t => dealiasType(t)
     })
   }
 
-  /** Evaluate `tree` to the runtime value it represents. */
-  def eval[A](c: Context)(tree: c.Tree): A = {
-
-    import c.universe._
-
-    // A tree transformer for de-aliasing types.
-    object TypeDealiaser extends Transformer {
-      override def transform(tree: Tree): Tree = tree match {
-        case t: TypeTree => TypeTree(dealiasType(c)(t.tpe))
-        case _ => super.transform(tree)
-      }
+  /** A tree transformer for de-aliasing types. */
+  object TypeDealiaser extends Transformer {
+    override def transform(tree: Tree): Tree = tree match {
+      case t: TypeTree => TypeTree(dealiasType(t.tpe))
+      case _ => super.transform(tree)
     }
+  }
+
+  /** Evaluate `tree` to the runtime value it represents. */
+  def eval[A](tree: Tree): A = {
 
     // Expand the tree and extract literals directly if possible.
     c.typecheck(tree) match {
-      case Literal(Constant(x)) => x.asInstanceOf[A]
+      case Literal(Constant(x)) => x.asInstanceOf[A]  // Shortcut evaluation
       case t => {
-        // De-alias all types in the tree and evaluate it using
-        // reflective compilation.
-        val t2 = TypeDealiaser.transform(t)
-        println(s"Attempting to evaluate $t2...")
-        c.eval(c.Expr[A](c.untypecheck(t2)))
+        // De-alias all types in the tree to minimize the risk of
+        // local (uncompiled) type aliases leaking through to the
+        // toolbox compiler and causing errors.
+        val dealiased = TypeDealiaser.transform(c.untypecheck(t))
+
+        import scala.reflect.runtime.{ universe => ru }
+
+        // Convert the compile-time tree to a run-time tree.
+        val importer = ru.internal.createImporter(c.universe).asInstanceOf[
+            ru.Importer { val from: c.universe.type }]
+        val imported = importer.importTree(dealiased)
+
+        // Attempt evaluation
+        println(s"Attempting to evaluate $imported...")
+        val r = TreeEvaluator.toolBox.eval(imported).asInstanceOf[A]
+        println(s"$imported evaluated to $r.")
+        r
       }
     }
   }
+}
 
-  /**
-   * Evaluate the interpreter `ip` to the runtime value it represents.
-   */
-  def evalInterpreter[A](c: Context)(ip: c.Tree): A = {
-    import c.universe._
-    eval[A](c)(q"$ip.value")
-  }
+/**
+ * Companion object holding the toolbox compiler instance.
+ *
+ * We keep around a toolbox compiler (and its reflection mirror) in
+ * this object so we do not have to create one every time a tree needs
+ * to be evaluated.
+ */
+object TreeEvaluator {
 
-  /**
-   * Helper method for evaluating unary operations at compile time.
-   *
-   * Given an unary operation `op(x)` returning a value of literal
-   * type and a tree for the arguments `x` of the operation, this
-   * method will return the literal (tree) `op(x)`.
-   */
-  def evalAndApplyOp[A, B](c: Context)(x: c.Tree, op: A => B): c.Tree = {
-    import c.universe._
-    Literal(Constant(TreeEvaluator.eval[A](c)(x)))
-  }
+  import scala.reflect.runtime.universe._
 
-  /**
-   * Helper method for evaluating binary operations at compile time.
-   *
-   * Given a binary operation `op(x, y)` returning a value of literal
-   * type and trees for the arguments `x` and `y` of the operation,
-   * this method will return the literal (tree) `op(x, y)`.
-   */
-  def evalAndApplyBinOp[A, B, C](c: Context)(
-    x: c.Tree, y: c.Tree, op: (A, B) => C): c.Tree = {
-    import c.universe._
-    val xv = TreeEvaluator.eval[A](c)(x)
-    val yv = TreeEvaluator.eval[B](c)(y)
-    Literal(Constant(op(xv, yv)))
-  }
+  /** The reflection mirror used for evaluating trees. */
+  private lazy val mirror = runtimeMirror(this.getClass.getClassLoader)
+
+  /** The toolbox compiler used for evaluating trees. */
+  private lazy val toolBox = mirror.mkToolBox()
 }

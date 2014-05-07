@@ -11,7 +11,7 @@ import internal.Proof
 class VectorsAndMatrices {
 
   // Alias for `1` type-level literal
-  type One = Pt[Int@lit(1)]
+  type One = Int@lit(1)
 
   // Matrices
 
@@ -29,14 +29,14 @@ class VectorsAndMatrices {
 
     /** Element access. */
     def apply[I, J](
-      implicit iip: Interpreter[Int, I], jip: Interpreter[Int, J],
+      implicit iip: I :~ Int, jip: J :~ Int,
       ipf: Proof[(Zero <= I) && (I < M)],
       jpf: Proof[(Zero <= J) && (J < N)]): T =
       this(interpret[Int, I], interpret[Int, J])
 
     /** Coordinate projection. */
     def apply[I](
-      implicit iip: Interpreter[Int, I],
+      implicit iip: I :~ Int,
       ipf: Proof[(Zero <= I) && (I < *[M, N])]): T =
       data(interpret[Int, I])
 
@@ -139,8 +139,8 @@ class VectorsAndMatrices {
 
     /** Factory method. */
     def tabulate[T, M, N](f: (Int, Int) => T)(
-      implicit tt: ClassTag[T], mip: Interpreter[Int, M],
-      nip: Interpreter[Int, N], mpf: Proof[N >= Zero],
+      implicit tt: ClassTag[T], mip: M :~ Int,
+      nip: N :~ Int, mpf: Proof[N >= Zero],
       npf: Proof[M >= Zero]): Mat[T, M, N] = {
       val m = interpret[Int, M]
       val n = interpret[Int, N]
@@ -154,8 +154,8 @@ class VectorsAndMatrices {
 
     /** Factory method. */
     def tabulate[T, M, N](f: Int => T)(
-      implicit tt: ClassTag[T], mip: Interpreter[Int, M],
-      nip: Interpreter[Int, N], mpf: Proof[N >= Zero],
+      implicit tt: ClassTag[T], mip: M :~ Int,
+      nip: N :~ Int, mpf: Proof[N >= Zero],
       npf: Proof[M >= Zero]): Mat[T, M, N] = {
       val m = interpret[Int, M]
       val n = interpret[Int, N]
@@ -165,7 +165,7 @@ class VectorsAndMatrices {
     /** Factory method. */
     def fromRowMajVec[T, M, N, O1, O2](v: Mat[Mat[T, N, O1], M, O2])(
       implicit tt: ClassTag[T],
-      mip: Interpreter[Int, M], nip: Interpreter[Int, N],
+      mip: M :~ Int, nip: N :~ Int,
       mpf: Proof[N >= Zero], npf: Proof[M >= Zero],
       o1eq: O1 =*= One, o2eq: O2 =*= O1): Mat[T, M, N] = {
       Mat.tabulate[T, M, N] { (i: Int, j: Int) => v(i)(j) }
@@ -179,7 +179,7 @@ class VectorsAndMatrices {
       implicit add: Operator_+[S, T, R], rt: ClassTag[R],
       eq1: M =*= I, eq2: N =*= J)
         extends Operator_+[Mat[S, M, N], Mat[T, I, J], Mat[R, M, N]] {
-      def internal$apply(a: Mat[S, M, N], b: Mat[T, I, J]) = a + b;
+      def apply(a: Mat[S, M, N], b: Mat[T, I, J]) = a + b;
     }
     implicit def mat_+[S, T, R, M, N, I, J](
       implicit add: Operator_+[S, T, R], rt: ClassTag[R],
@@ -190,7 +190,7 @@ class VectorsAndMatrices {
     final class MatScalar_*[-S, -T, +R, M, N](
       implicit mul: Operator_*[S, T, R], rt: ClassTag[R])
         extends Operator_*[Mat[S, M, N], T, Mat[R, M, N]] {
-      def internal$apply(a: Mat[S, M, N], x: T) = a * x;
+      def apply(a: Mat[S, M, N], x: T) = a * x;
     }
     implicit def matScalar_*[S, T, R, M, N](
       implicit mul: Operator_*[S, T, R], rt: ClassTag[R]) =
@@ -201,7 +201,7 @@ class VectorsAndMatrices {
       implicit mul: Operator_*[S, T, R], add: Operator_+[R, R, R],
       rt: ClassTag[R], eq: N =*= I, pf: Proof[N > Zero])
         extends Operator_*[Mat[S, M, N], Mat[T, I, J], Mat[R, M, J]] {
-      def internal$apply(a: Mat[S, M, N], b: Mat[T, I, J]) = a * b
+      def apply(a: Mat[S, M, N], b: Mat[T, I, J]) = a * b
     }
     implicit def matMat_*[S, T, R, M, N, I, J](
       implicit mul: Operator_*[S, T, R], add: Operator_+[R, R, R],
@@ -213,7 +213,7 @@ class VectorsAndMatrices {
 
     /** Factory method. */
     def tabulate[T, N](f: Int => T)(
-      implicit tt: ClassTag[T], nip: Interpreter[Int, N],
+      implicit tt: ClassTag[T], nip: N :~ Int,
       pf: Proof[N >= Zero]): Mat[T, N, One] =
       Mat.tabulate[T, N, One](f)
   }
@@ -222,8 +222,8 @@ class VectorsAndMatrices {
 class VecMatSpec extends VectorsAndMatrices with FlatSpecLike with Matchers {
 
   // Shortcuts
-  type Two   = Pt[Int@lit(2)]
-  type Three = Pt[Int@lit(3)]
+  type Two   = Int@lit(2)
+  type Three = Int@lit(3)
 
   it should "do some linear algebra" in {
 
@@ -250,6 +250,7 @@ class VecMatSpec extends VectorsAndMatrices with FlatSpecLike with Matchers {
 
     // Addition and scalar multiplication
     val v = e1 + e2 * 2.0
+    val u = e1 * 2.0
     v.length should equal(3)
     v[Zero] should equal(1)
     v[One] should equal(2)
