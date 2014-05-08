@@ -24,6 +24,10 @@ class VectorsAndMatrices {
     @inline protected def apply(i: Int): T = data(i)
     @inline protected def apply(i: Int, j: Int): T = data(width * i + j)
 
+    type Length = *[N, M]
+    type Height = M
+    type Width = N
+
     @inline def length: Int = data.length
     @inline def height: Int = length / width
 

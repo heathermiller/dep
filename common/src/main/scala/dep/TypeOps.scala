@@ -32,8 +32,9 @@ final class lit(x: Any) extends StaticAnnotation
  *   import ch.epfl.lamp.dep._
  *
  *   interpret[Int,
- *       Int@v("x") val_= Zero + Int@lit(1) in
- *       Int@v("x")]                              // returns `1`
+ *       Int@v("x") := Zero + Int@lit(1) in
+ *       Int@v("x")
+ *   ]                                      // returns `1`
  * }}}
  */
 final class v(x: Any) extends StaticAnnotation
@@ -47,8 +48,9 @@ final class v(x: Any) extends StaticAnnotation
  *   import ch.epfl.lamp.dep._
  *
  *   interpret[Int,
- *     Int@v("x") val_= Zero + Int@lit(1) in
- *     Int@v("x")]                          // returns `1`
+ *     Int@v("x") := Zero + Int@lit(1) in
+ *     Int@v("x")
+ *   ]                                      // returns `1`
  * }}}
  */
 sealed trait :=[X, B]
@@ -62,7 +64,7 @@ sealed trait :=[X, B]
  *   import ch.epfl.lamp.dep._
  *
  *   interpret[Int,
- *     Int@v("x") val_= Zero + Int@lit(1) in
+ *     Int@v("x") := Zero + Int@lit(1) in
  *     Int@v("x")
  *   ]                                      // returns `1`
  * }}}
@@ -79,7 +81,7 @@ sealed trait in[X, B]
  *
  *   interpret[Int,
  *     (Int@v("x") => Int@v("x")) @@ Int@lit(2)
- *   ]                                      // returns `3`
+ *   ]                                      // returns `2`
  * }}}
  */
 sealed trait @@[F, X]
